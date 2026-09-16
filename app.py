@@ -1,33 +1,45 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import requests
+import yt_dlp
 
 app = Flask(__name__)
-CORS(app)  # Isse CORS error bilkul khatam ho jayega
+CORS(app)
 
 @app.route('/')
 def home():
-    return jsonify({"status": "Backend Server Alive & Ready!"})
+    return jsonify({"status": "Backend Active"})
 
 @app.route('/download', methods=['GET'])
 def download():
     video_url = request.args.get('url')
     if not video_url:
-        return jsonify({"error": "URL Dena zaroori hai!"}), 400
+        return jsonify({"error": "URL Required", "success": False}), 400
 
-    url = "https://instagram-downloader-scraper-reels-igtv-posts-stories.p.rapidapi.com/v1/post-info"
-    querystring = {"code_or_id_or_url": video_url}
-
-    headers = {
-        "x-rapidapi-key": "f45ea9e0a0mshe8d905b180aa394p19ed0fjsn9d332668c767",
-        "x-rapidapi-host": "instagram-downloader-scraper-reels-igtv-posts-stories.p.rapidapi.com"
+    # YouTube 403 error bypass options
+    ydl_opts = {
+        'format': 'best',
+        'quiet': True,
+        'no_warnings': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web']
+            }
+        },
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
     }
 
     try:
-        response = requests.get(url, headers=headers, params=querystring, timeout=15)
-        return jsonify(response.json())
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(video_url, download=False)
+            download_url = info.get('url')
+            
+            return jsonify({
+                "success": True,
+                "video_url": download_url,
+                "title": info.get('title')
+            })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e), "success": False}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
