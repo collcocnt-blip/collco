@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import yt_dlp
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -15,7 +16,12 @@ def download():
     if not video_url:
         return jsonify({"error": "URL Required", "success": False}), 400
 
-    # YouTube 403 error bypass options
+    # YouTube URL se playlist (&list=...) aur faltu parameters hatane ke liye cleanup
+    if "youtube.com" in video_url or "youtu.be" in video_url:
+        # Agar watch?v=ID ke baad playlist hai, toh sirf video ID rakhein
+        video_url = re.sub(r"&list=[^&]+", "", video_url)
+        video_url = re.sub(r"&index=[^&]+", "", video_url)
+
     ydl_opts = {
         'format': 'best',
         'quiet': True,
