@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import yt_dlp
+import requests
 import re
 
 app = Flask(__name__)
@@ -17,21 +18,33 @@ def download():
     if not video_url:
         return jsonify({"error": "URL Missing", "success": False}), 400
 
+    # --- YOUTUBE KE LIYE DIRECT PUBLIC API (No Bot Error, No Cookies Needed) ---
     if "youtube.com" in video_url or "youtu.be" in video_url:
-        video_url = re.sub(r"&list=[^&]+", "", video_url)
-        video_url = re.sub(r"&index=[^&]+", "", video_url)
+        try:
+            clean_url = re.sub(r"&list=[^&]+", "", video_url)
+            clean_url = re.sub(r"&index=[^&]+", "", clean_url)
+            
+            payload = {"url": clean_url, "vQuality": "720"}
+            headers = {"Accept": "application/json", "Content-Type": "application/json"}
+            
+            response = requests.post("https://co.wuk.sh/api/json", json=payload, headers=headers, timeout=10)
+            res_data = response.json()
 
-    # yt-dlp options with cookies file to bypass bot check
+            if response.status_code == 200 and ("url" in res_data or "picker" in res_data):
+                final_download_url = res_data.get("url") or res_data.get("picker")[0].get("url")
+                return jsonify({
+                    "success": True,
+                    "download_url": final_download_url,
+                    "title": res_data.get("filename", "YouTube Video")
+                })
+        except Exception as e:
+            pass  # Agar yahan issue aaye toh niche fallback chalega
+
+    # --- INSTAGRAM AUR BAAKI APPS KE LIYE AAPKA PURANA YT-DLP METHOD ---
     ydl_opts = {
         'format': 'best',
         'quiet': True,
         'no_warnings': True,
-        'cookiefile': 'cookies.txt',  # Yeh line bot error ko hata देगी
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'web']
-            }
-        }
     }
 
     try:
