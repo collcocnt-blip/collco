@@ -16,23 +16,24 @@ def download():
     if not url:
         return jsonify({'error': 'URL missing'}), 400
 
-    # YouTube Block (403 Forbidden) bypass options
+    # 403 Forbidden Fix via Client Spoofing
     ydl_opts = {
         'format': 'best',
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
         'geo_bypass': True,
-        # Spoof YouTube Mobile App Client to avoid IP Ban
+        # YouTube Mobile & VR Clients to bypass IP blocks
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web']
+                'player_client': ['android_vr', 'ios', 'web'],
+                'skip': ['hls', 'dash']
             }
         },
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-us,en;q=0.5',
+            'Accept-Language': 'en-US,en;q=0.9',
         }
     }
 
@@ -42,7 +43,6 @@ def download():
             
             video_url = info.get('url')
             if not video_url and 'formats' in info:
-                # Pick the best format with audio & video stream
                 for fmt in reversed(info['formats']):
                     if fmt.get('url') and fmt.get('acodec') != 'none':
                         video_url = fmt.get('url')
