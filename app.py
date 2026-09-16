@@ -16,21 +16,30 @@ def download():
     if not url:
         return jsonify({'success': False, 'error': 'URL missing hai!'}), 400
 
-    # YouTube URL se extra playlist/tracking parameters hatana
+    # YouTube URL se extra parameters hatana
     if "youtube.com/watch" in url and "&" in url:
         url = url.split('&')[0]
 
-    try:
-        ydl_opts = {
-            'format': 'best',
-            'quiet': True,
-            'no_warnings': True,
+    # YouTube Bot Block Bypass Options
+    ydl_opts = {
+        'format': 'best',
+        'quiet': True,
+        'no_warnings': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web']
+            }
         }
-        
+    }
+
+    try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+            info = yt_dlp.YoutubeDL({'quiet': True}).extract_info(url, download=False) if 'youtube' in url else ydl.extract_info(url, download=False)
             
-            # Direct video download link nikalna
+            # Agar upar wale se na aaye toh android client ke sath extract karein
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl_bypass:
+                info = ydl_bypass.extract_info(url, download=False)
+
             download_url = info.get('url') or (info.get('formats')[0]['url'] if info.get('formats') else None)
             title = info.get('title', 'Downloaded Video')
 
