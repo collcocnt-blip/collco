@@ -17,24 +17,21 @@ def download():
     if not video_url:
         return jsonify({"error": "URL Missing", "success": False}), 400
 
-    # YouTube URL cleanup
     if "youtube.com" in video_url or "youtu.be" in video_url:
         video_url = re.sub(r"&list=[^&]+", "", video_url)
         video_url = re.sub(r"&index=[^&]+", "", video_url)
 
-    # yt-dlp options specifically tuned to bypass YouTube bot detection
+    # yt-dlp options with cookies file to bypass bot check
     ydl_opts = {
         'format': 'best',
         'quiet': True,
         'no_warnings': True,
-        'nocheckcertificate': True,
-        'geo_bypass': True,
+        'cookiefile': 'cookies.txt',  # Yeh line bot error ko hata देगी
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'mweb']
+                'player_client': ['android', 'web']
             }
-        },
-        'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36'
+        }
     }
 
     try:
@@ -43,12 +40,6 @@ def download():
             download_url = info.get('url')
             
             if not download_url and 'formats' in info:
-                for fmt in reversed(info['formats']):
-                    if fmt.get('url') and fmt.get('acodec') != 'none':
-                        download_url = fmt.get('url')
-                        break
-            
-            if not download_url:
                 download_url = info['formats'][-1].get('url')
 
             return jsonify({
