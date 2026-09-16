@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app)
 
 @app.route('/')
-dêf home():
+def home():
     return "Video Downloader Backend is Running!"
 
 @app.route('/download', methods=['GET'])
@@ -16,7 +16,7 @@ def download():
     if not url:
         return jsonify({'success': False, 'error': 'URL missing hai!'}), 400
 
-    # YouTube URL se extra playlist/tracking parameters hatana taaki error na aaye
+    # YouTube URL se extra playlist/tracking parameters hatana
     if "youtube.com/watch" in url and "&" in url:
         url = url.split('&')[0]
 
