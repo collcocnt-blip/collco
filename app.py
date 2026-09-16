@@ -1,8 +1,8 @@
 import os
+import re
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
-import re
 import yt_dlp
 
 app = Flask(__name__)
@@ -21,7 +21,7 @@ def download():
     clean_url = re.sub(r"&list=[^&]+", "", video_url)
     clean_url = re.sub(r"&index=[^&]+", "", clean_url)
 
-    # --- YOUTUBE: Direct Secure API (Bypasses Bot Check completely) ---
+    # --- YOUTUBE: Public API Handler (Bypasses Bot Check & Sign-in block) ---
     if "youtube.com" in video_url or "youtu.be" in video_url:
         try:
             api_endpoint = f"https://api.vkrdown.com/v1/download?url={clean_url}"
@@ -40,7 +40,7 @@ def download():
         except Exception:
             pass
 
-        # Backup YouTube API if first fails
+        # Backup YouTube API
         try:
             backup_api = f"https://api.downloadall.workers.dev/?url={clean_url}"
             b_resp = requests.get(backup_api, timeout=8)
