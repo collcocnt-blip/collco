@@ -1,42 +1,58 @@
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import yt_dlp
 
 app = Flask(__name__)
-CORS(app)  # Isse CORS block hone ki samasya door ho jayegi
+# Enable CORS for all domains so your website can talk to this API
+CORS(app)
 
 @app.route('/')
 def home():
-    return jsonify({"status": "API is Live & Running!"})
+    return jsonify({
+        "status": "API is Live & Running!",
+        "message": "Send video link to /download?url=YOUR_LINK"
+    })
 
 @app.route('/download', methods=['GET'])
 def download():
     url = request.args.get('url')
     if not url:
-        return jsonify({'error': 'URL missing'}), 400
+        return jsonify({'error': 'URL missing in request'}), 400
 
+    # Advanced yt-dlp configuration to bypass blocks & extract direct MP4 links
     ydl_opts = {
-        'format': 'best',
+        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
         'quiet': True,
         'no_warnings': True,
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+        'nocheckcertificate': True,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
+            
+            # Extract Direct Stream URL
             video_url = info.get('url')
-            title = info.get('title', 'Video')
-            thumbnail = info.get('thumbnail', '')
+            if not video_url and 'formats' in info:
+                # Fallback to last format if direct url isn't in root
+                video_url = info['formats'][-1].get('url')
 
             return jsonify({
                 'success': True,
-                'download_url': video_url,
-                'title': title,
-                'thumbnail': thumbnail
+                'title': info.get('title', 'Video Download'),
+                'thumbnail': info.get('thumbnail', ''),
+                'download_url': video_url
             })
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Render environmental PORT bind for 0.0.0.0 host
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
